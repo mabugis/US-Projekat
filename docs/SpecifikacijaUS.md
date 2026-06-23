@@ -49,7 +49,7 @@ ESP32 mikrokontroler sa Tasmota firmware-om predstavlja jezgro fizičke simulaci
 Uređaj je konfigurisan na WiFi mrežu laboratorije i MQTT broker (`195.130.59.221`). Telemetrija se objavljuje svakih 60 sekundi, a relejima se upravlja putem MQTT komandi.
 
 ### 2.2 Custom uređaj — picoETF (Raspberry Pi Pico W)
-
+Raspber
 picoETF platforma pokriva vizualni i interaktivni dio sistema. MicroPython aplikacija realizira:
 
 - **RGB LED** za vizualizaciju ambijenta (toplo/hladno, mod odlaska, mod dolaska, alarm)
