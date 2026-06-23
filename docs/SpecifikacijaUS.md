@@ -44,12 +44,12 @@ ESP32 mikrokontroler sa Tasmota firmware-om predstavlja jezgro fizičke simulaci
 
 - **DHT11 senzor** temperature i vlažnosti, koji simulira termostat sobe i na osnovu čijih očitavanja agent odlučuje o grijanju
 - **Relej 1** — simulira bojler (uključen/isključen)
-- **Relej 2** — simulira pametnu utičnicu za uređaje koji se moraju isključiti pri odlasku (pegla, šporet)
+- **Relej 2** — simulira pametnu utičnicu za uređaje koji se moraju isključiti pri odlasku (pegla, šporet); u trenutnoj konfiguraciji na njoj je priključena **klima**, pa se pod "klima" podrazumijeva ova utičnica
 
 Uređaj je konfigurisan na WiFi mrežu laboratorije i MQTT broker (`195.130.59.221`). Telemetrija se objavljuje svakih 60 sekundi, a relejima se upravlja putem MQTT komandi.
 
 ### 2.2 Custom uređaj — picoETF (Raspberry Pi Pico W)
-Raspber
+
 picoETF platforma pokriva vizualni i interaktivni dio sistema. MicroPython aplikacija realizira:
 
 - **RGB LED** za vizualizaciju ambijenta (toplo/hladno, mod odlaska, mod dolaska, alarm)
@@ -98,20 +98,15 @@ picoETF uređaj koristi vlastiti JSON format poruka definisan u ovom projektu.
 
 ## 4. MCP funkcije
 
-Hermes Agent pristupa uređajima isključivo putem MCP servera, koji je proširenje kostura priloženog u radnom okruženju (`mcp_server.py`). Definirane su sljedeće funkcije:
+Hermes Agent pristupa uređajima isključivo putem MCP servera, koji je proširenje kostura priloženog u radnom okruženju (`mcp_server.py`). Implementirane su sljedeće funkcije (Hermes ih poziva s prefiksom `mcp_smarthome_`, npr. `mcp_smarthome_get_device_status`):
 
-| MCP funkcija | Parametri | Opis |
+| MCP alat | Parametri | Opis |
 |---|---|---|
-| `get_device_status()` | — | Čita stanje svih uređaja: temperatura, vlažnost, status releja, stanje LED-ova |
-| `set_relay(device, state)` | `device: 'boiler'\|'socket'`, `state: bool` | Uključuje ili isključuje zadani relej na Tasmota uređaju |
-| `get_temperature()` | — | Vraća trenutnu temperaturu i vlažnost sa DHT11 senzora |
+| `get_device_status()` | — | Čita stanje svih uređaja: temperaturu i vlažnost (DHT11), status bojlera i utičnice, ambijent (LED maska + RGB) i tastera |
+| `toggle_relay(device, state)` | `device: 'boiler'\|'socket'`, `state: bool` | Uključuje/isključuje relej na Tasmota uređaju — `boiler` (relej 1) ili `socket` (relej 2, pametna utičnica) |
 | `set_ambience(scene)` | `scene: 'arrival'\|'departure'\|'evening'\|'alarm'` | Postavlja scenu na picoETF — određuje RGB boju i LED masku |
-| `set_leds(mask)` | `mask: int 0–255` | Postavlja stanje svih 8 LED dioda bitmask vrijednošću |
-| `set_rgb(r, g, b)` | `r, g, b: int 0–255` | Direktno postavlja boju RGB LED diode |
-| `get_button_states()` | — | Vraća trenutno stanje sva četiri tastera (T1–T4) |
-| `activate_departure_mode()` | — | Provjerava sve uređaje, gasi aktivne i postavlja scenu odlaska |
-| `activate_arrival_mode(minutes)` | `minutes: int` | Zakazuje paljenje bojlera i grijanja za dolazak za N minuta |
-| `set_heating_rule(min_t, max_t)` | `min_t, max_t: float` | Zadaje pravilo za automatsko uključivanje i isključivanje grijanja |
+| `set_mode_leaving()` | — | Mod odlaska: gasi bojler i utičnicu, postavlja plavu scenu odlaska |
+| `set_mode_arriving(minutes)` | `minutes: int` | Mod dolaska: pali bojler i utičnicu, postavlja toplu narandžastu scenu; `minutes` = minuta do dolaska |
 
 ---
 
@@ -122,11 +117,11 @@ Ključni princip projekta jeste da korisnik komunicira isključivo prirodnim jez
 ### Primjeri dijaloških scenarija
 
 - `"Idem van, je li sve okej?"` — agent poziva `get_device_status()`, javlja šta je uključeno i nudi gašenje
-- `"Ugasi sve i postavi da sam otišao"` — agent poziva `activate_departure_mode()`, gasi releje i postavlja plavu RGB scenu
-- `"Vraćam se za 45 minuta"` — agent poziva `activate_arrival_mode(45)` i zakazuje paljenje bojlera s kalkulacijom
-- `"Kolika je temperatura u sobi?"` — agent poziva `get_temperature()` i odgovara: *"Trenutno je 21.5°C, vlažnost 58%."*
+- `"Ugasi sve i postavi da sam otišao"` — agent poziva `set_mode_leaving()`, gasi releje i postavlja plavu RGB scenu
+- `"Vraćam se za 45 minuta"` — agent poziva `set_mode_arriving(45)` i pali bojler s procjenom vremena grijanja vode
+- `"Kolika je temperatura u sobi?"` — agent poziva `get_device_status()` i odgovara: *"Trenutno je 21.5°C, vlažnost 58%."*
 - `"Postavi večernji ambijent"` — agent poziva `set_ambience('evening')`, topla narandžasta RGB, prigušeni LED-ovi
-- `"Ako temperatura padne ispod 19°C, upali grijanje"` — agent poziva `set_heating_rule(19, 23)` i pamti pravilo
+- `"Upali klimu"` — agent poziva `toggle_relay('socket', true)` (klima je na pametnoj utičnici)
 
 ---
 
@@ -139,7 +134,7 @@ Demonstracija se izvodi uživo kroz razgovor sa Hermes Agentom, uz vidljive fizi
 1. **Pokretanje sistema** — `hermes --tui`; agent prikazuje dostupne alate i MCP funkcije
 2. **Provjera stanja** — *"Provjeri sve uređaje"*; agent čita DHT11 i stanje releja, javlja rezultat na prirodnom jeziku
 3. **Mod odlaska** — *"Idem van"*; relej se isključuje, RGB prelazi na plavu, LED diode se gase
-4. **Mod dolaska** — *"Vraćam se za 20 minuta"*; agent kalkulira i zakazuje paljenje bojlera, javlja plan
-5. **Temperaturno pravilo** — zadavanje kroz dijalog; agent prima pravilo i reaguje na promjene temperature
+4. **Mod dolaska** — *"Vraćam se za 20 minuta"*; agent pali bojler i utičnicu, postavlja narandžastu scenu i javlja procjenu
+5. **Ambijent i alarm** — *"Postavi večernji ambijent"* / *"Uključi alarm"*; RGB i LED diode reaguju na scenu
 6. **Telegram upravljanje** — ista komanda putem Telegrama sa mobitela, isti rezultat na uređajima
-7. **Fizički panel** — pritisak tastera T1; agent reaguje i izvršava definisanu radnju
+7. **Klima preko utičnice** — *"Upali klimu"* / *"Ugasi klimu"*; agent upravlja pametnom utičnicom (relej 2)
