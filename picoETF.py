@@ -5,8 +5,8 @@ from machine import Pin, PWM
 from umqtt.simple import MQTTClient
 
 
-WIFI_SSID     = "Lab220"           # naziv WiFi mreže laboratorije
-WIFI_PASSWORD = "lab220lozinka"              # lozinka 
+WIFI_SSID     = "Lab_1-15"           # naziv WiFi mreže laboratorije
+WIFI_PASSWORD = "AzXR2212"              # lozinka 
 
 MQTT_BROKER   = "195.130.59.221"
 MQTT_PORT     = 1883
