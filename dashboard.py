@@ -209,7 +209,7 @@ h1 span{{color:#cbd5e1;font-weight:300;font-size:.95rem;margin-left:10px;font-we
   <div class="logbox" id="lg">{LOG_HTML}</div>
 </div>
 <script>
-async function poll(){try{let r=await fetch('/api/state'),d=await r.json()
+async function poll(){{try{{let r=await fetch('/api/state'),d=await r.json()
 document.querySelector('.dot').style.background=d.connected?'#22c55e':'#ef4444'
 document.querySelector('.dot').style.boxShadow=d.connected?'0 0 8px #22c55e88':'none'
 document.querySelector('.stxt').textContent=d.connected?'Spojeno na MQTT broker':'Nije spojeno'
@@ -233,7 +233,7 @@ document.getElementById('lp2').textContent='Zadnje: '+d.last_pico
 document.getElementById('up').innerHTML='Uptime: <strong>'+d.uptime+'</strong>'
 document.getElementById('lb').innerHTML='LED maska: <strong>0b'+d.led_bin+'</strong>'
 document.getElementById('rg2').innerHTML='RGB: <strong>('+d.rr+', '+d.rg+', '+d.rb+')</strong>'
-document.getElementById('lg').innerHTML=d.log_html}catch(e){}}
+document.getElementById('lg').innerHTML=d.log_html}}catch(e){{}}}}
 setInterval(poll,1000);poll()
 </script>
 </body>
